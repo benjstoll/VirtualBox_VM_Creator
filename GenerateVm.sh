@@ -5,9 +5,41 @@ image_dir="${working_dir}/VmImages/"
 stg_dir=`pwd`/PersistentStorage
 
 
+create_vm() {
+    name=$1
+    id=$2
+    
+    if ! [ -z ${id} ]; then
+        name=${name}_${id}
+    fi
+
+    printf "\nCreating VM and setting hardware...\n"
+    VBoxManage createvm --name ${name} --ostype ${iso_name} --register
+    VBoxManage modifyvm ${name} --cpus ${cpu_count} --memory ${mem_count} --vram 24
+
+    printf "\nSetting storage config...\n"
+    VBoxManage createhd --filename ${stg_dir}/${name}/${name}.vdi --size ${stg_count} --variant ${stg_type}
+    VBoxManage storagectl ${name} --name "SATA Controller" --add sata --bootable on
+    VBoxManage storageattach ${name} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium ${stg_dir}/${name}/${name}.vdi
+
+    printf "\nMounting ISO to virtual optical drive...\n"
+    VBoxManage storagectl ${name} --name "IDE Controller" --add ide
+    VBoxManage storageattach ${name} --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium ${image_dir}/${iso_name}
+}
+
+
 # Collect variables to be used for VM creation
-# VM Name
-printf "\nPlease enter a VM name: "
+# VM Count
+printf "\nEnter Identical VM count: "
+read vm_count
+
+if [ -z ${vm_count} ]; then
+    echo "Please enter how many identical VMs you would like."
+    exit 1
+fi
+
+
+printf "Please enter a VM name: "
 read vm_name
 
 if [ -z ${vm_name} ]; then
@@ -76,17 +108,12 @@ echo "Storage Capacity: ${stg_count} MB"
 echo "Storage Volume Location: ${volume_path}"
 echo "Storage Type: ${stg_type}"
 
-printf "\nCreating VM and setting hardware...\n"
-VBoxManage createvm --name ${vm_name} --ostype ${vm_name} --register
-VBoxManage modifyvm ${vm_name} --cpus ${cpu_count} --memory ${mem_count} --vram 24
-
-printf "\nSetting storage config...\n"
-VBoxManage createhd --filename ${stg_dir}/${vm_name}/${vm_name}.vdi --size ${stg_count} --variant ${stg_type}
-VBoxManage storagectl ${vm_name} --name "SATA Controller" --add sata --bootable on
-VBoxManage storageattach ${vm_name} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium ${stg_dir}/${vm_name}/${vm_name}.vdi
-
-printf "\nMounting ISO to virtual optical drive...\n"
-VBoxManage storagectl ${vm_name} --name "IDE Controller" --add ide
-VBoxManage storageattach ${vm_name} --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium ${image_dir}/${iso_name}
+if [ ${vm_count} -gt 1 ]; then
+    for i in $(seq 1 ${vm_count}); do
+        create_vm ${vm_name} ${i}
+    done
+else
+    create_vm
+fi
 
 echo "Completed!"

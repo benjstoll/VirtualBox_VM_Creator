@@ -1,0 +1,13 @@
+Below you will find an examplke on how to use the VM generation script. This is useful for making multiple VMs that all need to have the same specs. Its also handy if you dont remember the CLI commands to make virtual box VMs even if you need to make only 1. If you decide to make more than 1 VM all VMs will have _${id} appended to the end of the ${name} you give.
+
+
+Execution: ./GenerateVm.sh
+
+Enter Identical VM count: 5
+Please enter a VM name: Fedora
+Please enter desired VM CPU count: 2
+Please enter desired VM Memory count (in MB): 2048
+Please enter desired VM ISO: Fedora-Server-dvd-x86_64-37-1.7.iso
+Please enter desired VM storage capacity (in MB): 5000
+Please enter desired VM storage type (fixed or default): fixed
+
