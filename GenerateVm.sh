@@ -2,6 +2,7 @@
 
 working_dir=`pwd`
 image_dir="${working_dir}/VmImages/"
+stg_dir=`pwd`/PersistentStorage
 
 
 # Collect variables to be used for VM creation
@@ -42,7 +43,7 @@ if [ -z ${iso_name} ]; then
     exit 1
 fi
 
-if ! [ -f ${iso_name} ]; then
+if ! [ -f ${image_dir}/${iso_name} ]; then
     echo "Could not find an image named ${iso_name}"
     echo "Please make sure it exists in ${image_dir}"
     exit 1
@@ -54,15 +55,6 @@ read stg_count
 
 if [ -z ${stg_count} ]; then
     echo "Please provide a stg count."
-    exit 1
-fi
-
-# VM Storage Mount
-printf "Please enter path to volume location: "
-read volume_path
-
-if [ -z ${volume_path} ]; then
-    echo "Please provide a path where the storage for the vm is to be kept."
     exit 1
 fi
 
@@ -84,3 +76,17 @@ echo "Storage Capacity: ${stg_count} MB"
 echo "Storage Volume Location: ${volume_path}"
 echo "Storage Type: ${stg_type}"
 
+printf "\nCreating VM and setting hardware...\n"
+VBoxManage createvm --name ${vm_name} --ostype ${vm_name} --register
+VBoxManage modifyvm ${vm_name} --cpus ${cpu_count} --memory ${mem_count} --vram 24
+
+printf "\nSetting storage config...\n"
+VBoxManage createhd --filename ${stg_dir}/${vm_name}/${vm_name}.vdi --size ${stg_count} --variant ${stg_type}
+VBoxManage storagectl ${vm_name} --name "SATA Controller" --add sata --bootable on
+VBoxManage storageattach ${vm_name} --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium ${stg_dir}/${vm_name}/${vm_name}.vdi
+
+printf "\nMounting ISO to virtual optical drive...\n"
+VBoxManage storagectl ${vm_name} --name "IDE Controller" --add ide
+VBoxManage storageattach ${vm_name} --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium ${image_dir}/${iso_name}
+
+echo "Completed!"
